@@ -4,13 +4,15 @@ import (
 	"context"
 	"log"
 	"time"
+	"fmt"	
+	
 
 	"graphql/graph/model"
-	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
-	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 var connectionString string ="mongodb+srv://adamskahiga:36596768Bantu.@cluster0.vvxjk.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -27,7 +29,7 @@ func Connect() *DB {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(options.Client().ApplyURI(connectionString))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectionString))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,20 +41,69 @@ func Connect() *DB {
 	return &DB{client: client}
 }
 
-func (db *DB) GetJobById(id string) *model.JobListing {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+func (db *DB) GetJobById(id string) (*model.JobListing, error) {
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
 
-	jobCollection := db.client.Database("jobs").Collection("jobListings")
-	_id, _ := primitive.ObjectIDFromHex(id)
-	filter := bson.M{"_id": _id}
-	var jobListing model.JobListing
-	err := jobCollection.FindOne(ctx, filter).Decode(&jobListing)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return &jobListing
+    jobCollection := db.client.Database("jobs").Collection("jobListings")
+    log.Printf("Querying database: %s, collection: %s", db.client.Database("jobs").Name(), jobCollection.Name())
+    count, err := jobCollection.CountDocuments(ctx, bson.M{})
+    if err != nil {
+        log.Printf("❌ Count error: %v", err)
+    }
+    log.Printf("Total documents in jobListings: %d", count)
+
+    cursor, err := jobCollection.Find(ctx, bson.M{})
+    if err != nil {
+        log.Printf("❌ Find error: %v", err)
+    }
+    var results []bson.M
+    if err = cursor.All(ctx, &results); err != nil {
+        log.Printf("❌ Cursor error: %v", err)
+    }
+    for _, result := range results {
+        switch v := result["_id"].(type) {
+        case primitive.ObjectID:
+            log.Printf("Document ID: %s", v.Hex())
+        case string:
+            log.Printf("Document ID (string): %s", v)
+        default:
+            log.Printf("Document ID (unexpected type): %v", v)
+        }
+    }
+
+    _id, err := primitive.ObjectIDFromHex(id)
+    if err != nil {
+        return nil, fmt.Errorf("invalid ID format: %v", err)
+    }
+
+    log.Printf("🔍 Searching for job with ID: %v", _id)
+
+    filter := bson.M{"_id": _id}
+    singleResult := jobCollection.FindOne(ctx, filter)
+    raw, err := singleResult.Raw()
+    if err != nil {
+        if err == mongo.ErrNoDocuments {
+            log.Println("❌ Job not found")
+            return nil, fmt.Errorf("job not found")
+        }
+        log.Printf("❌ Database error: %v", err)
+        return nil, err
+    }
+    log.Printf("Raw result: %v", raw)
+
+    var jobListing model.JobListing
+    err = singleResult.Decode(&jobListing)
+    if err != nil {
+        log.Printf("❌ Decode error: %v", err)
+        return nil, err
+    }
+
+	
+    log.Printf("✅ Job found: %+v", jobListing)
+    return &jobListing, nil
 }
+
 
 func (db *DB) GetJobs() []*model.JobListing {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

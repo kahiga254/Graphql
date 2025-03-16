@@ -6,6 +6,7 @@ package graph
 
 import (
 	"context"
+	"log"
 	
 	"graphql/graph/model"
 	"graphql/database"
@@ -34,7 +35,13 @@ func (r *queryResolver) Jobs(ctx context.Context) ([]*model.JobListing, error) {
 
 // Job is the resolver for the job field.
 func (r *queryResolver) Job(ctx context.Context, id string) (*model.JobListing, error) {
-	return db.GetJobById(id), nil
+	job, err := db.GetJobById(id)
+	if err != nil {
+		log.Printf("❌ GraphQL Error: %v", err)
+		return nil, err
+	}
+	log.Printf("✅ GraphQL Job Found: %+v", job)
+	return job, nil
 }
 
 // Mutation returns MutationResolver implementation.

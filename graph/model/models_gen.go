@@ -2,6 +2,8 @@
 
 package model
 
+
+
 type CreateJobListingInput struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -14,12 +16,13 @@ type DeleteJobResponse struct {
 }
 
 type JobListing struct {
-	ID          string `json:"_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Company     string `json:"company"`
-	URL         string `json:"url"`
+	ID         string			   `bson:"_id,omitempty"`
+	Title       string             `bson:"title"`
+	Description string             `bson:"description"`
+	URL         string             `bson:"url"`
+	Company     string             `bson:"company"`
 }
+
 
 type Mutation struct {
 }

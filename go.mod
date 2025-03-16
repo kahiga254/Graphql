@@ -6,7 +6,6 @@ require (
 	github.com/99designs/gqlgen v0.17.67
 	github.com/vektah/gqlparser/v2 v2.5.23
 	go.mongodb.org/mongo-driver v1.17.3
-	go.mongodb.org/mongo-driver/v2 v2.1.0
 )
 
 require (
@@ -18,6 +17,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/urfave/cli/v2 v2.27.6 // indirect
